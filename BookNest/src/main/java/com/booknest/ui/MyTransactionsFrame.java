@@ -1,16 +1,15 @@
-
 package com.booknest.ui;
-
-import com.booknest.dao.TransactionDAO;
-import com.booknest.model.AcceptedRequest;
-import com.booknest.model.CampusTransaction;
-
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
+
+import com.booknest.dao.TransactionDAO;
+import com.booknest.model.AcceptedRequest;
+import com.booknest.model.CampusTransaction;
 
 public class MyTransactionsFrame extends JFrame {
 
@@ -43,9 +42,7 @@ public class MyTransactionsFrame extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
 
         JLabel heading = new JLabel("My Transactions");
-
         heading.setFont(new Font("Arial", Font.BOLD, 25));
-
         heading.setBorder(
                 BorderFactory.createEmptyBorder(15, 15, 10, 15)
         );
@@ -53,18 +50,15 @@ public class MyTransactionsFrame extends JFrame {
         JButton refreshButton = new JButton("Refresh");
 
         JPanel topPanel = new JPanel(new BorderLayout());
-
         topPanel.add(heading, BorderLayout.CENTER);
         topPanel.add(refreshButton, BorderLayout.EAST);
 
         contentPanel = new JPanel();
-
         contentPanel.setLayout(
                 new BoxLayout(contentPanel, BoxLayout.Y_AXIS)
         );
 
         mainPanel.add(topPanel, BorderLayout.NORTH);
-
         mainPanel.add(
                 new JScrollPane(contentPanel),
                 BorderLayout.CENTER
@@ -105,7 +99,6 @@ public class MyTransactionsFrame extends JFrame {
                 for (AcceptedRequest request : acceptedRequests) {
 
                     contentPanel.add(createAcceptedRequestCard(request));
-
                     contentPanel.add(Box.createVerticalStrut(12));
                 }
             }
@@ -123,12 +116,13 @@ public class MyTransactionsFrame extends JFrame {
                 for (CampusTransaction transaction : transactions) {
 
                     contentPanel.add(createTransactionCard(transaction));
-
                     contentPanel.add(Box.createVerticalStrut(12));
                 }
             }
 
         } catch (Exception e) {
+
+            e.printStackTrace();
 
             JOptionPane.showMessageDialog(
                     this,
@@ -143,7 +137,6 @@ public class MyTransactionsFrame extends JFrame {
     private void addSectionHeading(String headingText) {
 
         JLabel heading = new JLabel(headingText);
-
         heading.setFont(new Font("Arial", Font.BOLD, 18));
 
         heading.setBorder(
@@ -161,7 +154,6 @@ public class MyTransactionsFrame extends JFrame {
         JPanel card = createCardPanel();
 
         JPanel details = new JPanel();
-
         details.setLayout(
                 new BoxLayout(details, BoxLayout.Y_AXIS)
         );
@@ -196,7 +188,6 @@ public class MyTransactionsFrame extends JFrame {
         );
 
         JButton scheduleButton = new JButton("Schedule Handover");
-
         JButton cancelButton = new JButton("Cancel Request");
 
         scheduleButton.addActionListener(e ->
@@ -222,7 +213,6 @@ public class MyTransactionsFrame extends JFrame {
         JPanel card = createCardPanel();
 
         JPanel details = new JPanel();
-
         details.setLayout(
                 new BoxLayout(details, BoxLayout.Y_AXIS)
         );
@@ -303,7 +293,9 @@ public class MyTransactionsFrame extends JFrame {
 
             } else {
 
-                actions.add(new JLabel("You have confirmed the handover."));
+                actions.add(
+                        new JLabel("You have confirmed the handover.")
+                );
             }
 
             JButton cancelButton =
@@ -375,17 +367,40 @@ public class MyTransactionsFrame extends JFrame {
 
         try {
 
+            // Read and validate meeting date
             LocalDate meetingDate =
                     LocalDate.parse(dateField.getText().trim());
 
+            // Get selected time from dropdown
             String selectedTime =
                     timeBox.getSelectedItem().toString();
 
-            LocalTime meetingTime = LocalTime.parse(
-                    selectedTime,
-                    DateTimeFormatter.ofPattern("h:mm a")
-            );
+            // Clean and normalize the selected time
+            String cleanTime = selectedTime.trim()
+                    .replaceFirst("(?i)^at\\s+", "")
+                    .replaceAll("\\s+", " ")
+                    .toUpperCase(Locale.ENGLISH);
 
+            // Convert "4 PM" into "4:00 PM"
+            if (cleanTime.matches("\\d{1,2}\\s+[AP]M")) {
+
+                cleanTime = cleanTime.replaceFirst(
+                        "^(\\d{1,2})\\s+([AP]M)$",
+                        "$1:00 $2"
+                );
+            }
+
+            // Parse the time into LocalTime
+            DateTimeFormatter formatter =
+                    DateTimeFormatter.ofPattern(
+                            "h:mm a",
+                            Locale.ENGLISH
+                    );
+
+            LocalTime meetingTime =
+                    LocalTime.parse(cleanTime, formatter);
+
+            // Validate meeting date
             if (meetingDate.isBefore(LocalDate.now())) {
 
                 throw new IllegalArgumentException(
@@ -393,6 +408,7 @@ public class MyTransactionsFrame extends JFrame {
                 );
             }
 
+            // Validate meeting time if date is today
             if (meetingDate.equals(LocalDate.now())
                     && meetingTime.isBefore(LocalTime.now())) {
 
@@ -401,6 +417,7 @@ public class MyTransactionsFrame extends JFrame {
                 );
             }
 
+            // Save meeting details in database
             transactionDAO.scheduleTransaction(
                     request.getRequestId(),
                     email,
@@ -411,12 +428,16 @@ public class MyTransactionsFrame extends JFrame {
 
             JOptionPane.showMessageDialog(
                     this,
-                    "Campus handover scheduled successfully!\nBoth students can now view the meeting details in My Transactions."
+                    "Campus handover scheduled successfully!\n" +
+                    "Both students can now view the meeting details in My Transactions."
             );
 
             loadTransactions();
 
         } catch (Exception e) {
+
+            // Print complete error details in terminal
+            e.printStackTrace();
 
             JOptionPane.showMessageDialog(
                     this,
@@ -430,7 +451,8 @@ public class MyTransactionsFrame extends JFrame {
 
         int choice = JOptionPane.showConfirmDialog(
                 this,
-                "Cancel this accepted request?\nThe reserved book will become available again.",
+                "Cancel this accepted request?\n" +
+                "The reserved book will become available again.",
                 "Confirm Cancellation",
                 JOptionPane.YES_NO_OPTION
         );
@@ -451,6 +473,8 @@ public class MyTransactionsFrame extends JFrame {
             loadTransactions();
 
         } catch (Exception e) {
+
+            e.printStackTrace();
 
             JOptionPane.showMessageDialog(
                     this,
@@ -487,20 +511,24 @@ public class MyTransactionsFrame extends JFrame {
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Both students have confirmed!\nTransaction completed successfully."
+                        "Both students have confirmed!\n" +
+                        "Transaction completed successfully."
                 );
 
             } else {
 
                 JOptionPane.showMessageDialog(
                         this,
-                        "Your confirmation has been saved.\nWaiting for the other student to confirm."
+                        "Your confirmation has been saved.\n" +
+                        "Waiting for the other student to confirm."
                 );
             }
 
             loadTransactions();
 
         } catch (Exception e) {
+
+            e.printStackTrace();
 
             JOptionPane.showMessageDialog(
                     this,
@@ -516,7 +544,8 @@ public class MyTransactionsFrame extends JFrame {
 
         int choice = JOptionPane.showConfirmDialog(
                 this,
-                "Are you sure you want to cancel this transaction?\nThe reserved book(s) will become available again.",
+                "Are you sure you want to cancel this transaction?\n" +
+                "The reserved book(s) will become available again.",
                 "Confirm Cancellation",
                 JOptionPane.YES_NO_OPTION
         );
@@ -541,6 +570,8 @@ public class MyTransactionsFrame extends JFrame {
 
         } catch (Exception e) {
 
+            e.printStackTrace();
+
             JOptionPane.showMessageDialog(
                     this,
                     "Unable to cancel transaction: " + e.getMessage()
@@ -550,14 +581,15 @@ public class MyTransactionsFrame extends JFrame {
         }
     }
 
-    private String formatTime(java.time.LocalTime time) {
+    // Format meeting time for display
+    private String formatTime(LocalTime time) {
 
         if (time == null) {
             return "Not selected";
         }
 
         return time.format(
-                DateTimeFormatter.ofPattern("h:mm a")
+                DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)
         );
     }
 }

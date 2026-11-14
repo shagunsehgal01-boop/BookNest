@@ -12,8 +12,8 @@ public class DBConnection {
 
     private static final String USERNAME = "root";
 
-    // Replace this with your own MySQL password
-    private static final String PASSWORD = System.getenv("BOOKNEST_DB_PASSWORD");
+    private static final String PASSWORD =
+            System.getenv("BOOKNEST_DB_PASSWORD");
 
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USERNAME, PASSWORD);
